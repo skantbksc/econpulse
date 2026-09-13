@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EconPulse — Key Macroeconomic Indicators</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#12181f;
+    --panel-hi:#182028;
+    --line:#232b34;
+    --ink:#eef2f6;
+    --ink-dim:#8a97a5;
+    --accent:#5b8def;
+    --accent-soft:rgba(91,141,239,.14);
+    --up:#3ecf8e;
+    --down:#f0665f;
+    --radius:14px;
+    --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 620px at 82% -8%, rgba(91,141,239,.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(62,207,142,.06), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  @font-face{
+    font-family:'Inter'; src:local('Inter');
+  }
+
+  .app{max-width:1180px;margin:0 auto;padding:0 24px 80px;}
+
+  /* Top bar */
+  header.topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(11,15,20,.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:1180px;margin:0 auto;padding:16px 24px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .back-btn{
+    display:none;align-items:center;gap:6px;
+    background:var(--panel-hi);border:1px solid var(--line);
+    color:var(--ink);border-radius:10px;padding:8px 12px;
+    cursor:pointer;font-size:13px;font-weight:600;
+    transition:.15s;
+  }
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .back-btn.show{display:inline-flex;}
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto;}
+  .brand .mark{
+    width:32px;height:32px;border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),#7c5cff);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:14px;color:#fff;
+    box-shadow:0 4px 14px rgba(91,141,239,.35);
+  }
+  .brand-text{display:flex;flex-direction:column;line-height:1.1;}
+  .brand-text b{font-size:15px;letter-spacing:.2px;}
+  .brand-text span{font-size:11px;color:var(--ink-dim);letter-spacing:.4px;text-transform:uppercase;}
+  .crumbs{font-size:13px;color:var(--ink-dim);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .crumbs .seg{cursor:pointer;transition:.15s;}
+  .crumbs .seg:hover{color:var(--accent);}
+  .crumbs .seg.current{color:var(--ink);font-weight:600;cursor:default;}
+  .crumbs .sep{opacity:.4;}
+
+  .source-controls{display:flex;align-items:center;gap:10px;flex:none;}
+  .source-status{
+    display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-dim);
+    font-family:var(--mono);white-space:nowrap;
+  }
+  .src-dot{width:6px;height:6px;border-radius:50%;background:#5c6b7a;flex:none;}
+  .source-status.live .src-dot{background:var(--up);box-shadow:0 0 6px var(--up);}
+  .source-status.error .src-dot{background:var(--down);}
+  .link-btn{
+    background:var(--panel-hi);border:1px solid var(--line);color:var(--ink);
+    border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;
+    transition:.15s;white-space:nowrap;
+  }
+  .link-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .link-btn.ghost{background:transparent;}
+  @media (max-width:760px){
+    .source-controls{display:none;}
+  }
+
+  /* Views */
+  .view{display:none;animation:fade .35s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---- Divisions (landing) view ---- */
+  .initial-loader{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; min-height:70vh; color:var(--ink-dim);
+  }
+  .loader-spinner{
+    width:34px; height:34px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  .loader-text{font-size:13.5px; font-family:var(--mono); letter-spacing:.3px;}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .hero{padding:40px 0 28px;}
+  .hero h1{
+    font-size:clamp(28px,4vw,40px);
+    margin:0 0 8px;font-weight:800;letter-spacing:-.02px;
+  }
+  .hero p{color:var(--ink-dim);font-size:15px;max-width:640px;margin:0;line-height:1.55;}
+  .hero .stamp{
+    margin-top:16px;display:inline-flex;gap:8px;align-items:center;
+    font-family:var(--mono);font-size:11.5px;color:var(--accent);
+    background:var(--accent-soft);border:1px solid rgba(91,141,239,.3);
+    padding:6px 12px;border-radius:999px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--up);box-shadow:0 0 8px var(--up);}
+
+  .division-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:14px;margin-top:8px;
+  }
+  .division-card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;cursor:pointer;
+    position:relative;overflow:hidden;
+    transition:transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .division-card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(140deg, var(--accent-soft), transparent 55%);
+    opacity:0;transition:opacity .2s;
+  }
+  .division-card:hover{transform:translateY(-3px);border-color:rgba(91,141,239,.45);}
+  .division-card:hover::before{opacity:1;}
+  .division-code{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    letter-spacing:.5px;font-weight:700;
+  }
+  .division-name{font-size:16px;font-weight:700;margin-top:10px;line-height:1.3;}
+  .division-meta{
+    margin-top:16px;display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:var(--ink-dim);
+  }
+  .division-meta .count{
+    background:var(--panel-hi);padding:3px 9px;border-radius:999px;font-weight:600;
+  }
+  .division-arrow{font-size:16px;color:var(--ink-dim);transition:.15s;}
+  .division-card:hover .division-arrow{color:var(--accent);transform:translateX(2px);}
+
+  /* ---- Indicators view (image1 style tiles) ---- */
+  .section-head{padding:28px 0 18px;}
+  .section-head h2{font-size:24px;margin:0 0 6px;font-weight:800;}
+  .section-head p{color:var(--ink-dim);font-size:13.5px;margin:0;}
+
+  .indicator-grid{display:flex;flex-direction:column;gap:14px;}
+  .indicator-tile{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;cursor:pointer;
+    display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;
+    transition:.18s;
+  }
+  .indicator-tile:hover{border-color:rgba(91,141,239,.45);background:var(--panel-hi);}
+  .tile-left .eyebrow{
+    display:flex;align-items:center;gap:8px;color:var(--ink-dim);font-size:12.5px;font-weight:600;
+  }
+  .tile-left .eyebrow .bullet{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;}
+  .tile-left .value{
+    font-size:32px;font-weight:800;margin:10px 0 4px;letter-spacing:-.5px;
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  }
+  .tile-left .value .unit{font-size:14px;color:var(--ink-dim);font-weight:600;}
+  .change-pill{
+    font-family:var(--mono);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+  }
+  .change-pill.up{color:var(--up);background:rgba(62,207,142,.12);}
+  .change-pill.down{color:var(--down);background:rgba(240,102,95,.12);}
+  .change-pill.flat{color:var(--ink-dim);background:var(--panel-hi);}
+  .tile-left .period{font-size:12.5px;color:var(--ink-dim);margin-top:2px;}
+  .tile-left .source{font-size:11.5px;color:#5c6b7a;margin-top:12px;}
+  .tile-right{width:180px;height:64px;}
+  @media (max-width:560px){
+    .indicator-tile{grid-template-columns:1fr;}
+    .tile-right{width:100%;}
+  }
+
+  /* ---- Detail view (image2 style) ---- */
+  .detail-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 28px 20px;margin-top:8px;
+  }
+  .detail-top{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:20px;
+  }
+  .detail-title .kicker{color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
+  .detail-title h2{font-size:22px;margin:6px 0 8px;font-weight:800;}
+  .detail-title .stat-line{font-size:14px;color:var(--ink-dim);}
+  .detail-title .stat-line b{color:var(--ink);font-size:16px;}
+  .icon-actions{display:flex;gap:8px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel-hi);color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:.15s;
+  }
+  .icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .tabs{display:flex;gap:4px;background:var(--panel-hi);padding:4px;border-radius:10px;width:fit-content;margin-bottom:20px;}
+  .tab-btn{
+    border:none;background:transparent;color:var(--ink-dim);font-size:13px;font-weight:600;
+    padding:8px 16px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .tab-btn.active{background:var(--accent);color:#fff;}
+
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;animation:fade .25s ease;}
+  .chart-wrap{height:340px;position:relative;margin-bottom:6px;}
+
+  table.data-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.data-table th, table.data-table td{
+    text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);
+  }
+  table.data-table th{color:var(--ink-dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px;}
+  table.data-table tr:last-child td{border-bottom:none;}
+  table.data-table td.num{font-family:var(--mono);}
+
+  .meta-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid var(--line);
+  }
+  .meta-item .k{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.3px;}
+  .meta-item .v{font-size:14px;font-weight:600;margin-top:4px;}
+
+  footer{
+    text-align:center;color:#4a5866;font-size:12px;padding:40px 0 10px;
+  }
+
+  ::-webkit-scrollbar{height:8px;width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="back-btn" id="backBtn">← Back</button>
+    <div class="brand">
+      <div class="mark">EP</div>
+      <div class="brand-text"><b>EconPulse</b><span>Key Macroeconomic Indicators</span></div>
+    </div>
+    <div class="crumbs" id="crumbs"></div>
+    <div class="source-controls" id="sourceControls">
+      <span class="source-status" id="sourceStatus">
+        <span class="src-dot"></span> Snapshot data
+      </span>
+      <button class="link-btn" id="linkFileBtn">Choose Excel file…</button>
+      <button class="link-btn" id="sourceFilesBtn" title="For each division found in the file(s) you pick, replaces that division's indicators to match the file exactly — updates, additions, drops and renames all take effect. Other divisions are untouched.">Update from source files…</button>
+    </div>
+  </div>
+</header>
+<div class="file-fallback" id="fileFallback" style="display:none;">
+  <input type="file" id="fileInputFallback" accept=".xlsx,.xls" style="display:none;">
+  <input type="file" id="sourceFilesInput" accept=".xlsx,.xls" multiple style="display:none;">
+</div>
+
+<!-- Shown until the real (shared or auto-fetched) data is ready, so the dashboard
+     never flashes stale/bundled numbers before quietly swapping them out. -->
+<div class="initial-loader" id="initialLoader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">Loading dashboard data…</div>
+</div>
+
+<div class="app" id="appRoot" style="display:none;">
+
+  <!-- VIEW 1: Divisions -->
+  <section class="view active" id="view-divisions">
+    <div class="hero">
+      <h1>Key Macroeconomic Indicators</h1>
+
+      <p>A live snapshot of India's macroeconomic pulse — growth, prices, money &amp; banking, external sector and public finance — organised by the division that compiles each series.</p>
+      <div class="stamp"><span class="dot"></span> DATA COMPILED FROM SUMMARY SHEET · <span id="stampDivCount"></span> DIVISIONS</div>
+    </div>
+    <div class="division-grid" id="divisionGrid"></div>
+  </section>
+
+  <!-- VIEW 2: Indicators for a division -->
+  <section class="view" id="view-indicators">
+    <div class="section-head">
+      <h2 id="divisionHeading">Division</h2>
+      <p id="divisionSub">Indicators tracked by this division, with latest value and recent trend.</p>
+    </div>
+    <div class="indicator-grid" id="indicatorGrid"></div>
+  </section>
+
+  <!-- VIEW 3: Indicator detail -->
+  <section class="view" id="view-detail">
+    <div class="detail-card">
+      <div class="detail-top">
+        <div class="detail-title">
+          <div class="kicker" id="detailDivision">Division</div>
+          <h2 id="detailName">Indicator</h2>
+          <div class="stat-line"><b id="detailValue">—</b> <span id="detailPeriodLine"></span></div>
+        </div>
+        <div class="icon-actions">
+          <button class="icon-btn" id="downloadBtn" title="Download chart as PNG">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button class="icon-btn" id="shareBtn" title="Copy link">⇱</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="viz">Visualization</button>
+        <button class="tab-btn" data-tab="data">Data</button>
+        <button class="tab-btn" data-tab="info">Metadata</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-viz">
+        <div class="chart-wrap"><canvas id="detailChart"></canvas></div>
+      </div>
+
+      <div class="tab-panel" id="panel-data">
+        <table class="data-table" id="dataTable"></table>
+      </div>
+
+      <div class="tab-panel" id="panel-info">
+        <div class="meta-grid" id="metaGrid"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>EconPulse Dashboard · Built from Summary-Sheet-Final.xlsx</footer>
+
+<script>
+/* ============ DATA ============ */
+const RAW = [{"division": "GSD", "indicator": "Global Growth", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 3, "t1": 3.5, "t2": 3.5, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "Advanced Economies", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 1.7, "t1": 1.9, "t2": 1.9, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "Emerging Market and Developing Economies", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 3.8, "t1": 4.5, "t2": 4.5, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "Global Inflation", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 4.7, "t1": 4.1, "t2": 5.8, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "Advanced Economies", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 3, "t1": 2.5, "t2": 2.6, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "Emerging Market and Developing Economies", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 5.8, "t1": 5.2, "t2": 8, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "Global General Government Debt ", "frequency": "Annual", "unit": "per cent ", "latest_period": "CY2026", "current": 95.3, "t1": 93.94, "t2": 92.01, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "b) 40-Currency REER (% change)", "frequency": "Monthly", "unit": "Index (B.Y 2015-16)", "latest_period": "May 2026", "current": 89.12, "t1": 90.90990361336802, "t2": 92.57166646832789, "sply": 101.03, "ytd": null, "fytd": null, "lastyr": null}, {"division": "GSD", "indicator": "c) 40-Currency NEER (% change)", "frequency": "Monthly", "unit": "Index (B.Y 2015-16)", "latest_period": "May 2026", "current": 77.7, "t1": 79.6624101442861, "t2": 80.79624885277623, "sply": 88.35, "ytd": null, "fytd": null, "lastyr": null}, {"division": "NAAD", "indicator": "I.1 Real GDP at Market Prices (y-o-y, % change)", "frequency": "Quarterly ", "unit": "Per cent", "latest_period": "Q4:FY2026", "current": 7.8, "t1": "8.0 (Q3:FY2026)", "t2": "8.3 (Q2:FY2026)", "sply": "7.0 (Q4:FY2025)", "ytd": "-", "fytd": "-", "lastyr": "7.7 (Annual)"}, {"division": "NAAD", "indicator": "I.2 Real GVA at Basic Prices (y-o-y, % change)", "frequency": "Quarterly", "unit": "Per cent", "latest_period": "Q4:FY2026", "current": 7.9, "t1": "8.0 (Q3:FY2026)", "t2": "8.6 (Q2:FY2026)", "sply": "7.1 (Q4:FY2025)", "ytd": "-", "fytd": "-", "lastyr": "7.9 (Annual)"}, {"division": "NAAD", "indicator": "Gross Domestic Saving Rate (% of GNDI at Current Prices)", "frequency": "Annual", "unit": "Percent share of GNDI", "latest_period": "FY2025", "current": 34.24546033960268, "t1": "32.3 (FY2024)", "t2": "29.3 (FY2023)", "sply": "32.3 (FY2024)", "ytd": "-", "fytd": "-", "lastyr": "-"}, {"division": "NAAD", "indicator": "Gross Domestic Investment Rate (% of GDP at Current Prices)", "frequency": "Annual", "unit": "Percent share of GDP", "latest_period": "FY2025", "current": 34.34590603203168, "t1": "34.5 (FY2024)", "t2": "34.4 (FY2023)", "sply": "34.5 (FY2024)", "ytd": "-", "fytd": "-", "lastyr": "-"}, {"division": "DRE", "indicator": "Foodgrains Production (Million Tonnes)", "frequency": "Annual", "unit": "Million Tonnes", "latest_period": "3rd AE for Agriculture year 2025-26(July-June)", "current": 376.563, "t1": 357.732, "t2": 332.298, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DRE", "indicator": "a) Kharif (Million Tonnes)", "frequency": "Annual", "unit": "Million Tonnes", "latest_period": "3rd AE for Agriculture year 2025-26(July-June)", "current": 176.038, "t1": 169.45999999999998, "t2": 155.768, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DRE", "indicator": "b) Rabi (Including summers) (Million Tonnes)", "frequency": "Annual", "unit": "Million Tonnes", "latest_period": "3rd AE for Agriculture year 2025-26(July-June)", "current": 200.52499999999998, "t1": 188.27200000000005, "t2": 176.53, "sply": null, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DRE", "indicator": "Food Stocks (Million Tonnes)", "frequency": "Fortnightly", "unit": "Million Tonnes", "latest_period": "As on June 30, 2026", "current": 118.54400000000001, "t1": 120.88600000000001, "t2": 121.74900000000002, "sply": 91.53300000000002, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DRE", "indicator": "Procurement (Million Tonnes)", "frequency": "Daily", "unit": "Million Tonnes", "latest_period": "As on July 16, 2026", "current": 91.9, "t1": 91.9, "t2": 91.9, "sply": 83.21, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DRE", "indicator": "Cumulative Seasonal Rainfall (per cent of Long Period Average)", "frequency": "Daily", "unit": "Per cent Deviation from Long Period Average (LPA)", "latest_period": "As on July 16, 2026", "current": -0.24, "t1": -0.23, "t2": -0.21, "sply": 0.09, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DRE", "indicator": "Reservoir Status as on date (per cent of Full Reservoir Level)", "frequency": "Weekly", "unit": "Per cent of Full Reservoir Level (FRL)", "latest_period": "As on July 16, 2026", "current": 0.3446, "t1": 0.3238, "t2": 0.26, "sply": 0.5663, "ytd": null, "fytd": null, "lastyr": null}, {"division": "DISS", "indicator": "Index of Industrial Production (% change)", "frequency": "Monthly", "unit": "Index", "latest_period": "May 2026", "current": 5.141388174807204, "t1": 4.8802129547471225, "t2": 3.0182684670373163, "sply": 3.365810451727185, "ytd": 4.298140883506747, "fytd": 5.013077593722755, "lastyr": 4.229406554472973}, {"division": "DISS", "indicator": "Index of Eight Core Industries (% change)", "frequency": "Monthly", "unit": "Index", "latest_period": "May 2026", "current": 0.5, "t1": 1.8, "t2": 1.3, "sply": 1.2, "ytd": 2.180028129395197, "fytd": 1.109445277361317, "lastyr": 2.7593874766260456}, {"division": "DISS", "indicator": "PMI Manufacturing ", "frequency": "Monthly", "unit": "Index", "latest_period": "Jun 2026", "current": 54.16130524, "t1": 55.02598185, "t2": 54.7, "sply": 58.4, "ytd": 55.01454784833333, "fytd": 54.62909569666667, "lastyr": 57.26387656833333}, {"division": "DISS", "indicator": "PMI Services", "frequency": "Monthly", "unit": "Index", "latest_period": "Jun 2026", "current": 57.4, "t1": 59.8, "t2": 58.8, "sply": 60.4, "ytd": 58.349999999999994, "fytd": 58.666666666666664, "lastyr": 59.420852764166675}, {"division": "FAD", "indicator": "Household financial savings", "frequency": "Quarterly/Annual", "unit": "% of GDP at Current Prices", "latest_period": "Q4:FY25", "current": 9, "t1": 4.3, "t2": 7.1, "sply": 9.3, "ytd": null, "fytd": 7, "lastyr": 5.8}, {"division": "PMRD", "indicator": "Consumer Price Index (CPI) Combined (average % change)", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 4.4, "t1": 3.9, "t2": 3.5, "sply": "NA", "ytd": 2.8, "fytd": "NA", "lastyr": "NA"}, {"division": "PMRD", "indicator": "CPI Food & beverages", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 5.1, "t1": 4.5, "t2": 4, "sply": "NA", "ytd": 2.8, "fytd": "NA", "lastyr": "NA"}, {"division": "PMRD", "indicator": "CPI Fuel", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 4.5, "t1": 1.9, "t2": 0.4, "sply": "NA", "ytd": 4.9, "fytd": "NA", "lastyr": "NA"}, {"division": "PMRD", "indicator": "CPI ex food & fuel", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 3.9, "t1": 3.9, "t2": 3.7, "sply": "NA", "ytd": 2.4, "fytd": "NA", "lastyr": "NA"}, {"division": "PMRD", "indicator": "CPI ex food, fuel & precious metals", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 2.5, "t1": 2.4, "t2": 2.2, "sply": "NA", "ytd": 1.8, "fytd": "NA", "lastyr": "NA"}, {"division": "PMRD", "indicator": "CPI-Industrial Workers (IW) [average % change]", "frequency": "Monthly", "unit": "Per cent", "latest_period": "May 2026", "current": 4.7, "t1": 4.5, "t2": 4.3, "sply": 2.9, "ytd": 1.8, "fytd": 1.1, "lastyr": 3.1}, {"division": "PMRD", "indicator": "Wholesale Price Index (WPI) [average % change]", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 9.9, "t1": 9.7, "t2": 8.4, "sply": -0.4, "ytd": 8.1, "fytd": 5.4, "lastyr": 0.4}, {"division": "PMRD", "indicator": "Output Producers' Price index", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 9.6, "t1": 9.4, "t2": 8.3, "sply": -0.1, "ytd": 7.6, "fytd": 4.8, "lastyr": 0.7}, {"division": "PAD", "indicator": "Labour force Participation rate ", "frequency": "Monthly", "unit": "Per cent", "latest_period": "May 2026", "current": 54.4, "t1": 55, "t2": 55.4, "sply": 54.8, "ytd": 55.31999999999999, "fytd": 54.7, "lastyr": 55.35833333333333}, {"division": "PAD", "indicator": "Worker population ratio", "frequency": "Monthly", "unit": "Per cent", "latest_period": "May 2026", "current": 51.4, "t1": 52.2, "t2": 52.6, "sply": 51.7, "ytd": 52.5, "fytd": 51.8, "lastyr": 52.525}, {"division": "PAD", "indicator": "Unemployment rate", "frequency": "Monthly", "unit": "Per cent", "latest_period": "May 2026", "current": 5.5, "t1": 5.2, "t2": 5.1, "sply": 5.6, "ytd": 5.14, "fytd": 5.35, "lastyr": 5.124999999999999}, {"division": "PAD", "indicator": "Naukri Index (y-o-y, % change)", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 6.06, "t1": 1.0331314570716046, "t2": 5.802640722724121, "sply": 10.534469403563122, "ytd": 6.260167500150644, "fytd": 4.321349104110553, "lastyr": 7.522758448684371}, {"division": "PAD", "indicator": "VB-G RAM G/MGNREGS Work Demand (y-o-y, % change)", "frequency": "Monthly", "unit": "Per cent", "latest_period": "May 2026", "current": -27.81732053612643, "t1": -35.49312707799207, "t2": -23.19563807340016, "sply": 4.432525516408177, "ytd": -25.34146129559022, "fytd": -31.001233475613134, "lastyr": -16.74196854406658}, {"division": "DMC", "indicator": "Reserve Money (% change)", "frequency": "Fortnightly", "unit": "Per cent", "latest_period": "June 30, 2026", "current": 6.748470805877934, "t1": 5.927054218420878, "t2": 6.256278853677969, "sply": 4.875876753955131, "ytd": 9.527334781297327, "fytd": 2.907967649717833, "lastyr": 1.9635254788440293}, {"division": "DMC", "indicator": "Broad Money (M3) [% change]", "frequency": "Fortnightly", "unit": "Per cent", "latest_period": "June 30, 2026", "current": 12.954943245219559, "t1": 11.916326570599134, "t2": 12.047589340417876, "sply": 9.458110943822309, "ytd": 7.0108876987872435, "fytd": 1.3816412675037189, "lastyr": 3.4590858629567087}, {"division": "DMC", "indicator": "Aggregate Deposits of Scheduled Commercial Banks (% change)", "frequency": "Fortnightly", "unit": "Per cent", "latest_period": "June 30, 2026", "current": 13.28820589961972, "t1": 12.015310566431591, "t2": 12.210843660225358, "sply": 10.36632515720013, "ytd": 6.762523085578891, "fytd": 1.1764307569079753, "lastyr": 3.7423459412755116}, {"division": "DMC", "indicator": "Bank Credit of Scheduled Commercial Banks (% change)", "frequency": "Fortnightly", "unit": "Per cent", "latest_period": "June 30, 2026", "current": 18.620187476364958, "t1": 17.654035102970322, "t2": 17.651659857027813, "sply": 9.476302022408634, "ytd": 7.896309834425395, "fytd": 2.661132339969857, "lastyr": 1.327711516501831}, {"division": "DFM", "indicator": "Non-resident Investment (G-Secs including SDLs) outstanding ", "frequency": "Monthly", "unit": "\u20b9 crore", "latest_period": "June 2026", "current": 433362.366, "t1": 380169.968, "t2": 374008.998, "sply": 339447.249, "ytd": 17.488137398470798, "fytd": 17.77912143881099, "lastyr": -1.3208315129377446}, {"division": "DFM", "indicator": "Non-resident Investment (Corporate Bonds)  outstanding ", "frequency": "Monthly", "unit": "\u20b9 crore", "latest_period": "June 2026", "current": 288829, "t1": 284984, "t2": 288916, "sply": 126650, "ytd": 125.83997310209475, "fytd": 118.90769359031688, "lastyr": 9.441020579135527}, {"division": "DFM", "indicator": "1 Non-Food Bank Credit (FY 2026-27 (up to June 30))", "frequency": "Fortnightly/ Monthly", "unit": "\u20b9 crore", "latest_period": "2026-27 (up to June 30)", "current": 505152, "t1": null, "t2": null, "sply": 49813, "ytd": null, "fytd": null, "lastyr": 2919166}, {"division": "DFM", "indicator": "2 Non-Bank Sources (2.1+2.2)", "frequency": "Fortnightly/ Monthly", "unit": "\u20b9 crore", "latest_period": "2026-27 (up to June 30)", "current": 215005, "t1": null, "t2": null, "sply": 235340, "ytd": null, "fytd": null, "lastyr": 1769275}, {"division": "DFM", "indicator": "2.1 Domestic Sources", "frequency": "Fortnightly/ Monthly", "unit": "\u20b9 crore", "latest_period": "2026-27 (up to June 30)", "current": 95511, "t1": null, "t2": null, "sply": 168527, "ytd": null, "fytd": null, "lastyr": 1266318}, {"division": "DFM", "indicator": "2.2 Foreign Sources", "frequency": "Fortnightly/ Monthly", "unit": "\u20b9 crore", "latest_period": "2026-27 (up to June 30)", "current": 119495, "t1": null, "t2": null, "sply": 66813, "ytd": null, "fytd": null, "lastyr": 502957}, {"division": "DFM", "indicator": "3 Total Flow of Resources (1+2)", "frequency": "Fortnightly/ Monthly", "unit": "\u20b9 crore", "latest_period": "2026-27 (up to June 30)", "current": 720157, "t1": null, "t2": null, "sply": 285153, "ytd": null, "fytd": null, "lastyr": 4688441}, {"division": "DFM", "indicator": "BSE Sensex", "frequency": "Daily", "unit": "Index", "latest_period": "July 15, 2026", "current": 77185.43, "t1": 76264.33, "t2": 75237.99, "sply": 82570.91, "ytd": -9.428671002081671, "fytd": 7.2801367107010435, "lastyr": -7.062424142529622}, {"division": "DFM", "indicator": "NIFTY 50", "frequency": "Daily", "unit": "Index", "latest_period": "July 15, 2026", "current": 24078.5, "t1": 23853.9, "t2": 23643.5, "sply": 25195.8, "ytd": -7.849718327107951, "fytd": 7.823513080236793, "lastyr": -5.050947411386782}, {"division": "MBMD", "indicator": "Call/Notice Money Rate", "frequency": "Daily", "unit": "Per cent (Bps in the case of YTD and FYTD)", "latest_period": "Jul 2026", "current": 5.24, "t1": 5.3, "t2": 5.35, "sply": 5.31, "ytd": -30.99999999999996, "fytd": -164.99999999999994, "lastyr": 5.45}, {"division": "MBMD", "indicator": "10-year G-sec yield", "frequency": "Daily", "unit": "Per cent (Bps in the case of YTD and FYTD)", "latest_period": null, "current": 6.794, "t1": 6.7316, "t2": 6.7107, "sply": 6.316, "ytd": 20.59999999999995, "fytd": -24.100000000000055, "lastyr": 6.499157088122611}, {"division": "MBMD", "indicator": "91-Days T-bill yield", "frequency": "Daily", "unit": "Per cent (Bps in the case of YTD and FYTD)", "latest_period": null, "current": 5.29, "t1": 5.27, "t2": 5.27, "sply": 5.36, "ytd": 2.000000000000046, "fytd": -8.999999999999986, "lastyr": 5.462453256704978}, {"division": "MBMD", "indicator": "3M Commercial Paper (NBFC)", "frequency": "Daily", "unit": "Per cent (Bps in the case of YTD and FYTD)", "latest_period": null, "current": 7.15, "t1": 7.25, "t2": 7.1, "sply": 6.15, "ytd": 50, "fytd": -75, "lastyr": 6.82}, {"division": "MBMD", "indicator": "3M Certificates of Deposit ", "frequency": "Daily", "unit": "Per cent (Bps in the case of YTD and FYTD)", "latest_period": null, "current": 6.9, "t1": 6.75, "t2": 6.75, "sply": 5.8, "ytd": 70.00000000000001, "fytd": -19.99999999999993, "lastyr": 6.4}, {"division": "MBMD", "indicator": "Net LAF (System Liquidity) [+:Absoprtion; -: Injection]", "frequency": "Daily", "unit": "Rs. lakh crore", "latest_period": null, "current": 1.59, "t1": 1.49, "t2": 1.24, "sply": 2.67, "ytd": 1.31, "fytd": -1.6340000000000001, "lastyr": 1.86}, {"division": "PSD", "indicator": "Retail payments (volume)", "frequency": "Monthly", "unit": "Number", "latest_period": "May-26", "current": 26536901000, "t1": 25646036000, "t2": 26246138100, "sply": 21896817901, "ytd": 127196555032.2305, "fytd": 52182937000, "lastyr": 281953641714.7563}, {"division": "PSD", "indicator": "UPI Payments (volume)", "frequency": "Monthly", "unit": "Number", "latest_period": "May-26", "current": 23201928000, "t1": 22346797000, "t2": 22641108000, "sply": 18677460000, "ytd": 110287461999.99998, "fytd": 45548725000, "lastyr": 241616886000.00003}, {"division": "PSD", "indicator": "Card Payments (volume)", "frequency": "Monthly", "unit": "Number", "latest_period": "May-26", "current": 695363000, "t1": 657499000, "t2": 678793900, "sply": 582740318, "ytd": 3258704374, "fytd": 1352862000, "lastyr": 7303976939}, {"division": "PSD", "indicator": "Total Digital Payments (volume)", "frequency": "Monthly", "unit": "Number", "latest_period": "May-26", "current": 26526500000, "t1": 25632159999.999996, "t2": 26233694399.999996, "sply": 21876095824, "ytd": 127133196835.2305, "fytd": 52158660000, "lastyr": 281744837559.7563}, {"division": "PSD", "indicator": "Retail payments (value)", "frequency": "Monthly", "unit": "\u20b9 crore", "latest_period": "May-26", "current": 9246964, "t1": 9437844, "t2": 10855125.702000001, "sply": 8196787.063568405, "ytd": 47570130.33613773, "fytd": 18684808, "lastyr": 104878484.69360885}, {"division": "PSD", "indicator": "UPI Payments (value)", "frequency": "Monthly", "unit": "\u20b9 crore", "latest_period": "May-26", "current": 2990424, "t1": 2902988, "t2": 2952542.03, "sply": 2514297.01, "ytd": 14363664.589999998, "fytd": 5893412, "lastyr": 31423249.740000006}, {"division": "PSD", "indicator": "Card Payments (value)", "frequency": "Monthly", "unit": "\u20b9 crore", "latest_period": "May-26", "current": 238163, "t1": 234281, "t2": 257443.083, "sply": 226810.075415964, "ytd": 1177355.248195823, "fytd": 472444, "lastyr": 2807946.174990256}, {"division": "PSD", "indicator": "Total Digital Payments (value)", "frequency": "Monthly", "unit": "\u20b9 crore", "latest_period": "May-26", "current": 27268805, "t1": 27993244, "t2": 33922161.6, "sply": 24614318.367791608, "ytd": 144069330.78640783, "fytd": 55262049, "lastyr": 325103564.9320642}, {"division": "DCF", "indicator": "a) Revenue Receipts", "frequency": "Monthly", "unit": "(per cent of \nBudget Estimates)", "latest_period": "May 2026", "current": 14.044690998117826, "t1": 5.739495917240989, "t2": 16.83509194368276, "sply": 13.182926369331854, "ytd": 19.784186915358816, "fytd": 19.784186915358816, "lastyr": 96.54474070206224}, {"division": "DCF", "indicator": "b) Capital Outlay", "frequency": "Monthly", "unit": "(per cent of \nBudget Estimates)", "latest_period": "May 2026", "current": 4.791835727358385, "t1": 14.392261481681757, "t2": 14.77673230763381, "sply": 5.984393394574575, "ytd": 19.18409720904014, "fytd": 19.18409720904014, "lastyr": 97.11617695302256}, {"division": "DCF", "indicator": "c) Total Expenditure", "frequency": "Monthly", "unit": "(per cent of \nBudget Estimates)", "latest_period": "May 2026", "current": 5.723264853482543, "t1": 10.75272356313402, "t2": 16.9891488141479, "sply": 5.53774718207743, "ytd": 16.475988416616563, "fytd": 16.475988416616563, "lastyr": 96.8374513483287}, {"division": "DCF", "indicator": "d) Gross Fiscal Deficit", "frequency": "Monthly", "unit": "(per cent of \nBudget Estimates)", "latest_period": "May 2026", "current": -11.791058682555633, "t1": 21.36512777691288, "t2": 16.98730859639909, "sply": -11.037352702723375, "ytd": 9.574069094357247, "fytd": 9.574069094357247, "lastyr": 96.82797768678901}, {"division": "DSF", "indicator": "State Government Finances", "frequency": "Yearly ", "unit": "Per cent ", "latest_period": "2026-27 (BE) * ( As a per cent of GSDP)", "current": "2026-27 (BE)* ( As a per cent of GSDP)", "t1": "2025-26 BE", "t2": "2024-25 RE ", "sply": "2025-26 BE ", "ytd": null, "fytd": null, "lastyr": "2025-26"}, {"division": "DSF", "indicator": "a) Revenue Deficit (% of GDP)", "frequency": "Yearly ", "unit": "Per cent ", "latest_period": 0.07978296849311567, "current": 0.07978296849311567, "t1": 0.22851153001254457, "t2": 0.5752381066431153, "sply": 0.22851153001254457, "ytd": null, "fytd": null, "lastyr": 0.22851153001254457}, {"division": "DSF", "indicator": "b) Gross Fiscal Deficit (% of GDP)", "frequency": "Yearly ", "unit": "Per cent ", "latest_period": 2.993656133622957, "current": 2.993656133622957, "t1": 3.291717159006701, "t2": 3.511417281797936, "sply": 3.291717159006701, "ytd": null, "fytd": null, "lastyr": 3.291717159006701}, {"division": "DSF", "indicator": "c) Primary Deficit (% of GDP)", "frequency": "Yearly ", "unit": "Per cent ", "latest_period": 1.3802203265639466, "current": 1.3802203265639466, "t1": 1.5416501509065383, "t2": 1.813273606971302, "sply": 1.5416501509065383, "ytd": null, "fytd": null, "lastyr": 1.5416501509065383}, {"division": "DIT", "indicator": "Merchandise Exports (% change)", "frequency": "Monthly", "unit": "Per cent ", "latest_period": "June-2026", "current": 15.537503377040718, "t1": 17.858067759489217, "t2": 14.210160127886473, "sply": -1.3174420352797367, "ytd": 6.360974161019595, "fytd": 15.87873784157847, "lastyr": 0.9196929511553549}, {"division": "DIT", "indicator": "Merchandise Imports (% change)", "frequency": "Monthly", "unit": "Per cent ", "latest_period": "June-2026", "current": 31.004123988535447, "t1": 20.619741399471515, "t2": 10.020796748049055, "sply": -3.421627660497284, "ytd": 15.642135344073637, "fytd": 19.890875442927737, "lastyr": 7.4567313545971246}, {"division": "DIF", "indicator": "Invisible Balance/GDP (%)", "frequency": "Quarterly", "unit": "Per cent", "latest_period": "Mar 2026", "current": 8.73998093359599, "t1": 7.855152616822404, "t2": 8.18580094076848, "sply": 7.286061614176405, "ytd": 8.73998093359599, "fytd": "-", "lastyr": 7.956915120248915}, {"division": "DIF", "indicator": "Current Account Balance/GDP (%)", "frequency": "Quarterly", "unit": "Per cent", "latest_period": "Mar 2026", "current": 0.6809065438463857, "t1": -1.5167924097692407, "t2": -1.5263351658071422, "sply": 1.3610765195062098, "ytd": 0.6809065438463857, "fytd": "-", "lastyr": -0.6470345029773927}, {"division": "DIF", "indicator": "Net Capital Flows/GDP (%)", "frequency": "Quarterly", "unit": "Per cent", "latest_period": "Mar 2026", "current": 0.016444857005392187, "t1": -0.8693209506128439, "t2": 0.33633033236436727, "sply": -0.48317080235780924, "ytd": 0.016444857005392187, "fytd": "-", "lastyr": 0.04504892600042786}, {"division": "DIF", "indicator": "Net FDI", "frequency": "Monthly", "unit": "USD billions", "latest_period": "May 2026", "current": -0.07355834023488388, "t1": 6.574686585477691, "t2": 0.9167649588915737, "sply": 0.8817628183436381, "ytd": 10.709925190298136, "fytd": 6.501128245242807, "lastyr": 6.947430790635777}, {"division": "DIF", "indicator": "FPI", "frequency": "Monthly", "unit": "USD billions", "latest_period": "Jun 2026", "current": 2.69111, "t1": -4.48477, "t2": -6.830382781051901, "sply": 2.37751, "ytd": -22.48034366553103, "fytd": -8.6240427810519, "lastyr": -17.92744088447913}, {"division": "DIF", "indicator": "   Equity", "frequency": "Monthly", "unit": "USD billions", "latest_period": "Jun 2026", "current": -3.0553100000000004, "t1": -4.90045, "t2": -6.084262902776902, "sply": 2.42259, "ytd": -28.88350831241103, "fytd": -14.040022902776903, "lastyr": -19.837195409634127}, {"division": "DIF", "indicator": "   Debt", "frequency": "Monthly", "unit": "USD billions", "latest_period": "Jun 2026", "current": 5.74642, "t1": 0.4156799999999998, "t2": -0.746119878275, "sply": -0.045079999999999475, "ytd": 6.40316464688, "fytd": 5.415980121724999, "lastyr": 1.9097545251550005}, {"division": "DIF", "indicator": "Reserve Changes (BoP basis) [US $ billion] [(Increase (-)/Decrease (+)]", "frequency": "Quarterly", "unit": "USD billions", "latest_period": "Mar 2026", "current": -7.219424901242382, "t1": 24.408693110482567, "t2": 10.917018558046188, "sply": -8.788582268174435, "ytd": -7.219424901242382, "fytd": "-", "lastyr": 23.598740392968175}, {"division": "DIF", "indicator": "External Debt-GDP Ratio (%)", "frequency": "Quarterly", "unit": "Per cent", "latest_period": "end-Mar 2026", "current": 20.824484692849353, "t1": 20.391983327711635, "t2": 20.058311012924417, "sply": 19.82023768353413, "ytd": "-", "fytd": "-", "lastyr": "-"}, {"division": "DIF", "indicator": "Import Cover of Reserves (in Months)", "frequency": "Monthly", "unit": "In months", "latest_period": "Jun 2026", "current": 10.24091782389527, "t1": 10.512892945529165, "t2": 10.579451967810723, "sply": 11.388018731802553, "ytd": "-", "fytd": "-", "lastyr": 10.585803533439929}, {"division": "DIF", "indicator": "Short-term Debt (Residual Maturity) to Reserves (%)", "frequency": "Monthly", "unit": "Per cent", "latest_period": "Jun 2026", "current": 48.88729816807372, "t1": 47.62255316072835, "t2": 47.32294306877142, "sply": 43.479089312580946, "ytd": "-", "fytd": "-", "lastyr": 47.29454892960958}];
+
+const DIVISION_NAMES = {
+  GSD:  "Global Surveillance Division",
+  NAAD: "National Accounts &amp; Analysis Division",
+  DRE:  "Division of Rural Economy",
+  DISS: "Division of Industrial &amp; Services Statistics",
+  FAD:  "Financial Analysis Division",
+  PMRD: "Price Monitoring &amp; Research Division",
+  PAD:  "Productivity Analysis Division",
+  DMC:  "Division of Money &amp; Credit",
+  DFM:  "Division of Financial Markets",
+  MBMD: "Money &amp; Bond Markets Division",
+  PSD:  "Payment Systems Division",
+  DCF:  "Division of Centre Finances",
+  DSF:  "Division of State Finances",
+  DIT:  "Division of International Trade",
+  DIF:  "Division of International Finance"
+};
+
+// Build division -> indicators map, preserving first-seen order
+let masterRows = RAW.slice(); // canonical mutable dataset — merges/replacements happen here first
+let divisionOrder = [];
+let byDivision = {};
+function rebuildIndex(rows){
+  divisionOrder = [];
+  byDivision = {};
+  rows.forEach(r => {
+    if (!byDivision[r.division]) { byDivision[r.division] = []; divisionOrder.push(r.division); }
+    byDivision[r.division].push(r);
+  });
+}
+rebuildIndex(masterRows);
+
+function rowKey(division, indicator){
+  return String(division||'').trim().toLowerCase() + '||' + String(indicator||'').trim().toLowerCase();
+}
+
+// Merge newRows into masterRows. Each source file is treated as *authoritative for
+// whichever division(s) it contains*: rows matching an existing (division, indicator)
+// pair get updated in place, genuinely new indicators are appended, and — critically —
+// any indicator previously under that division but absent from the new file is removed.
+// This means dropping a row (or renaming it) in the source file and re-uploading it
+// actually removes/replaces it here too, instead of leaving a stale duplicate behind.
+// Returns {updated, added, removed} counts.
+function mergeRowsIntoMaster(newRows){
+  const touchedDivisions = new Set(newRows.map(r => String(r.division||'').trim()));
+  const newKeys = new Set(newRows.map(r => rowKey(r.division, r.indicator)));
+
+  const index = new Map();
+  masterRows.forEach((r, i)=> index.set(rowKey(r.division, r.indicator), i));
+
+  let updated = 0, added = 0;
+  newRows.forEach(nr => {
+    const key = rowKey(nr.division, nr.indicator);
+    if (index.has(key)){
+      Object.assign(masterRows[index.get(key)], nr);
+      updated++;
+    } else {
+      masterRows.push(nr);
+      index.set(key, masterRows.length - 1);
+      added++;
+    }
+  });
+
+  // Drop indicators that belong to a touched division but weren't in the new file —
+  // this is what makes a deleted or renamed row in the source actually take effect.
+  const before = masterRows.length;
+  masterRows = masterRows.filter(r => {
+    if (!touchedDivisions.has(String(r.division||'').trim())) return true;
+    return newKeys.has(rowKey(r.division, r.indicator));
+  });
+  const removed = before - masterRows.length;
+
+  return { updated, added, removed };
+}
+
+/* ============ HELPERS ============ */
+function numVal(v){
+  if (v === null || v === undefined || v === '' ) return null;
+  if (typeof v === 'number') return v;
+  const m = String(v).match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+function fmtNum(v, decimals=2){
+  if (v === null || v === undefined) return '—';
+  if (typeof v !== 'number') return v;
+  if (Math.abs(v) >= 1000) return v.toLocaleString('en-IN', {maximumFractionDigits:1});
+  return v.toFixed(decimals).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1');
+}
+function unitLabel(u){
+  if (!u) return '';
+  return u.trim();
+}
+function isPercentish(unit){
+  return /per\s*cent|percent/i.test(unit||'');
+}
+
+// Returns the full chronological list of historical points for a row: [{label, value}, ...]
+// ending with the current period. Uses row.periods (populated by the Excel parser, which
+// detects however many trailing period columns a sheet actually has) when available;
+// falls back to the legacy fixed T-2/T-1/Current fields for older/embedded rows.
+function getPeriodsRaw(row){
+  if (Array.isArray(row.periods) && row.periods.length){
+    return row.periods;
+  }
+  return [
+    {label:'T-2', value: row.t2},
+    {label:'T-1', value: row.t1},
+    {label:'Current', value: row.current}
+  ];
+}
+
+function trendSeries(row){
+  return getPeriodsRaw(row)
+    .map(p => ({ label:p.label, value: numVal(p.value) }))
+    .filter(p => p.value !== null);
+}
+function pctChange(row){
+  const cur = numVal(row.current), prev = numVal(row.t1);
+  if (cur === null || prev === null || prev === 0) return null;
+  return ((cur - prev) / Math.abs(prev)) * 100;
+}
+function slug(s){
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+/* ============ ROUTER STATE ============ */
+let state = { view:'divisions', division:null, indicatorIdx:null };
+let lastDetailSVG = null;
+
+const views = {
+  divisions: document.getElementById('view-divisions'),
+  indicators: document.getElementById('view-indicators'),
+  detail: document.getElementById('view-detail')
+};
+const backBtn = document.getElementById('backBtn');
+const crumbsEl = document.getElementById('crumbs');
+
+function setView(name){
+  Object.values(views).forEach(v=>v.classList.remove('active'));
+  views[name].classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+  renderCrumbs();
+}
+
+function renderCrumbs(){
+  let html = `<span class="seg ${state.view==='divisions'?'current':''}" data-nav="divisions">Divisions</span>`;
+  backBtn.classList.remove('show');
+  if (state.division){
+    backBtn.classList.add('show');
+    html += `<span class="sep">/</span><span class="seg ${state.view==='indicators'?'current':''}" data-nav="indicators">${state.division}</span>`;
+  }
+  if (state.view === 'detail'){
+    const row = byDivision[state.division][state.indicatorIdx];
+    html += `<span class="sep">/</span><span class="seg current">${row.indicator}</span>`;
+  }
+  crumbsEl.innerHTML = html;
+  crumbsEl.querySelectorAll('[data-nav]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const nav = el.getAttribute('data-nav');
+      if (nav === 'divisions') goDivisions();
+      else if (nav === 'indicators') goIndicators(state.division);
+    });
+  });
+}
+
+backBtn.addEventListener('click', ()=>{
+  if (state.view === 'detail') goIndicators(state.division);
+  else if (state.view === 'indicators') goDivisions();
+});
+
+/* ============ VIEW 1: DIVISIONS ============ */
+function renderDivisions(){
+  const grid = document.getElementById('divisionGrid');
+  document.getElementById('stampDivCount').textContent = divisionOrder.length;
+  grid.innerHTML = divisionOrder.map(code=>{
+    const items = byDivision[code];
+    const name = DIVISION_NAMES[code] || code;
+    return `<div class="division-card" data-div="${code}">
+      <div class="division-code">${code}</div>
+      <div class="division-name">${name}</div>
+      <div class="division-meta">
+        <span class="count">${items.length} indicator${items.length!==1?'s':''}</span>
+        <span class="division-arrow">→</span>
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.division-card').forEach(card=>{
+    card.addEventListener('click', ()=> goIndicators(card.getAttribute('data-div')));
+  });
+}
+
+function goDivisions(){
+  state = { view:'divisions', division:null, indicatorIdx:null };
+  setView('divisions');
+}
+
+/* ============ VIEW 2: INDICATORS (image1 style) — pure inline SVG, no external deps ============ */
+function buildSparklineSVG(pts, w=180, h=64){
+  const values = pts.map(p=>p.value);
+  const up = values.length>1 ? values[values.length-1] >= values[0] : true;
+  const color = up ? '#5b8def' : '#f0665f';
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  const padX = 4, padY = 8;
+  const stepX = values.length>1 ? (w - padX*2) / (values.length - 1) : 0;
+  const coords = values.map((v,i)=>{
+    const x = padX + i*stepX;
+    const y = padY + (1 - (v - min)/range) * (h - padY*2);
+    return [x,y];
+  });
+  const linePath = coords.map((c,i)=> (i===0?'M':'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+  const areaPath = linePath + ` L${coords[coords.length-1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
+  const gradId = 'g' + Math.random().toString(36).slice(2,9);
+  const lastPt = coords[coords.length-1];
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+    <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="3.5" fill="${color}"/>
+  </svg>`;
+}
+
+function goIndicators(divCode){
+  state = { view:'indicators', division:divCode, indicatorIdx:null };
+  document.getElementById('divisionHeading').textContent = `${divCode} — ${DIVISION_NAMES[divCode] || ''}`;
+  document.getElementById('divisionSub').textContent = `${byDivision[divCode].length} indicators tracked by this division. Tap a tile to explore the full series.`;
+  renderIndicatorTiles(divCode);
+  setView('indicators');
+}
+
+function renderIndicatorTiles(divCode){
+  const grid = document.getElementById('indicatorGrid');
+  const rows = byDivision[divCode];
+  grid.innerHTML = rows.map((row, idx)=>{
+    const change = pctChange(row);
+    let pillClass = 'flat', pillText = 'flat';
+    if (change !== null){
+      pillClass = change > 0.001 ? 'up' : (change < -0.001 ? 'down' : 'flat');
+      pillText = (change>0?'+':'') + change.toFixed(1) + '%';
+    }
+    const unit = unitLabel(row.unit);
+    const unitDisp = isPercentish(unit) ? '%' : (unit || '');
+    return `<div class="indicator-tile" data-idx="${idx}">
+      <div class="tile-left">
+        <div class="eyebrow"><span class="bullet"></span>${row.indicator}</div>
+        <div class="value">${fmtNum(numVal(row.current))}<span class="unit">${unitDisp}</span>
+          ${change!==null ? `<span class="change-pill ${pillClass}">${pillText}</span>`:''}
+        </div>
+        <div class="period">${row.latest_period || row.frequency || ''}${row.frequency? ' · '+row.frequency:''}</div>
+        <div class="source">Source: Summary Sheet · ${divCode}</div>
+      </div>
+      <div class="tile-right" id="spark-${idx}"></div>
+    </div>`;
+  }).join('');
+
+  // Pass 1: bind click listeners — always runs, independent of chart rendering
+  grid.querySelectorAll('.indicator-tile').forEach(tile=>{
+    const idx = parseInt(tile.getAttribute('data-idx'));
+    tile.addEventListener('click', ()=> goDetail(divCode, idx));
+  });
+
+  // Pass 2: draw sparklines — wrapped so a drawing error never affects clickability
+  rows.forEach((row, idx)=>{
+    try{
+      const pts = trendSeries(row);
+      const holder = document.getElementById(`spark-${idx}`);
+      if (holder && pts.length >= 2) holder.innerHTML = buildSparklineSVG(pts);
+    }catch(err){ console.error('sparkline render failed', err); }
+  });
+}
+
+/* ============ VIEW 3: DETAIL (image2 style) ============ */
+function goDetail(divCode, idx){
+  state = { view:'detail', division:divCode, indicatorIdx:idx };
+  const row = byDivision[divCode][idx];
+  document.getElementById('detailDivision').textContent = `${divCode} · ${DIVISION_NAMES[divCode]||''}`;
+  document.getElementById('detailName').textContent = row.indicator;
+  const unit = unitLabel(row.unit);
+  const unitDisp = isPercentish(unit) ? '%' : (unit? ' '+unit : '');
+  document.getElementById('detailValue').textContent = `${fmtNum(numVal(row.current))}${unitDisp}`;
+  document.getElementById('detailPeriodLine').textContent = `(Period: ${row.latest_period || '—'})`;
+
+  // reset tabs
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="viz"]').classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-viz').classList.add('active');
+  updateDownloadButtonLabel('viz');
+
+  renderDetailChart(row);
+  renderDataTable(row);
+  renderMetaGrid(row);
+
+  setView('detail');
+}
+
+function seriesForDetail(row){
+  // Build a chronological array of {label, value} from however many period columns
+  // this row actually has (3, 4, 5...), with the last point labeled with its real period.
+  const periods = getPeriodsRaw(row);
+  return periods
+    .map((p, i)=>{
+      const isLast = i === periods.length - 1;
+      const label = isLast ? ('Current\n('+(row.latest_period||'')+')') : p.label;
+      return { label, value: numVal(p.value) };
+    })
+    .filter(p => p.value !== null);
+}
+
+function renderDetailChart(row){
+  const wrap = document.querySelector('.chart-wrap');
+  const pts = seriesForDetail(row);
+  const unitDisp = isPercentish(row.unit) ? '%' : (row.unit||'').trim();
+
+  if (pts.length === 0){
+    wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-dim);font-size:14px;">No time-series data available for this indicator.</div>`;
+    lastDetailSVG = null;
+    return;
+  }
+
+  const w = 900, h = 340, padL = 54, padR = 24, padT = 24, padB = 44;
+  const values = pts.map(p=>p.value);
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || Math.abs(max || 1) || 1;
+  const yMin = min - range*0.15, yMax = max + range*0.15;
+  const yRange = (yMax - yMin) || 1;
+  const stepX = pts.length>1 ? (w - padL - padR) / (pts.length - 1) : 0;
+
+  const coords = pts.map((p,i)=>{
+    const x = padL + i*stepX;
+    const y = padT + (1 - (p.value - yMin)/yRange) * (h - padT - padB);
+    return {x, y, ...p};
+  });
+
+  const linePath = coords.map((c,i)=> (i===0?'M':'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
+  const areaPath = linePath + ` L${coords[coords.length-1].x.toFixed(1)},${h-padB} L${coords[0].x.toFixed(1)},${h-padB} Z`;
+
+  // Y-axis gridlines/labels (4 bands)
+  const bands = 4;
+  let gridLines = '', yLabels = '';
+  for (let i=0;i<=bands;i++){
+    const val = yMin + (yRange * i / bands);
+    const y = padT + (1 - i/bands) * (h - padT - padB);
+    gridLines += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#1a222b" stroke-width="1"/>`;
+    yLabels += `<text x="${padL-10}" y="${(y+4).toFixed(1)}" text-anchor="end" fill="#8a97a5" font-size="11" font-family="var(--sans)">${fmtNum(val,1)}</text>`;
+  }
+  const xLabels = coords.map(c=>
+    `<text x="${c.x.toFixed(1)}" y="${h-padB+20}" text-anchor="middle" fill="#8a97a5" font-size="11" font-family="var(--sans)">${(c.label||'').split('\n')[0]}</text>`
+  ).join('');
+
+  const points = coords.map((c,i)=>
+    `<circle class="dv-pt" data-i="${i}" cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="9" fill="transparent" style="cursor:pointer;"/>
+     <circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4" fill="#5b8def" stroke="#0b0f14" stroke-width="2"/>`
+  ).join('');
+
+  const gradId = 'dg' + Math.random().toString(36).slice(2,9);
+
+  const svg = `<svg id="detailSvg" viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5b8def" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#5b8def" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${gridLines}
+    <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+    <path d="${linePath}" fill="none" stroke="#5b8def" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${points}
+    ${yLabels}
+    ${xLabels}
+  </svg>
+  <div id="chartTooltip" style="position:absolute;display:none;pointer-events:none;background:#12181f;border:1px solid #232b34;color:#eef2f6;padding:8px 12px;border-radius:8px;font-size:12.5px;font-family:var(--sans);white-space:nowrap;z-index:5;"></div>`;
+
+  wrap.style.position = 'relative';
+  wrap.innerHTML = svg;
+  lastDetailSVG = wrap.querySelector('#detailSvg');
+
+  // Hover tooltips
+  const tooltip = document.getElementById('chartTooltip');
+  wrap.querySelectorAll('.dv-pt').forEach(circle=>{
+    circle.addEventListener('mouseenter', (e)=>{
+      const i = parseInt(circle.getAttribute('data-i'));
+      const c = coords[i];
+      tooltip.textContent = `${(c.label||'').split('\n')[0]}: ${fmtNum(c.value)} ${unitDisp}`;
+      tooltip.style.display = 'block';
+      const rect = wrap.getBoundingClientRect();
+      const scaleX = rect.width / w, scaleY = rect.height / h;
+      tooltip.style.left = Math.min(c.x*scaleX, rect.width-140) + 'px';
+      tooltip.style.top = Math.max(c.y*scaleY - 44, 0) + 'px';
+    });
+    circle.addEventListener('mouseleave', ()=>{ tooltip.style.display = 'none'; });
+  });
+}
+
+function renderDataTable(row){
+  const periods = getPeriodsRaw(row);
+  const periodCols = periods.map((p, i)=>{
+    const isLast = i === periods.length - 1;
+    return [isLast ? 'Current Period' : `${p.label} Period`, p.value];
+  });
+  const cols = [
+    ...periodCols,
+    ['Same Period Last Year', row.sply],
+    ['YTD', row.ytd],
+    ['FYTD', row.fytd],
+    ['Last Year', row.lastyr]
+  ];
+  const table = document.getElementById('dataTable');
+  table.innerHTML = `<thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>${cols.map(([k,v])=>`<tr><td>${k}</td><td class="num">${v===null||v===undefined||v===''?'—':v}</td></tr>`).join('')}</tbody>`;
+}
+
+function renderMetaGrid(row){
+  const items = [
+    ['Division', row.division],
+    ['Frequency', row.frequency || '—'],
+    ['Unit', row.unit || '—'],
+    ['Latest Period', row.latest_period || '—'],
+    ['Source', 'Summary Sheet']
+  ];
+  document.getElementById('metaGrid').innerHTML = items.map(([k,v])=>
+    `<div class="meta-item"><div class="k">${k}</div><div class="v">${v}</div></div>`
+  ).join('');
+}
+
+/* Tabs */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.getAttribute('data-tab');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById(`panel-${tab}`).classList.add('active');
+    updateDownloadButtonLabel(tab);
+  });
+});
+
+function updateDownloadButtonLabel(tab){
+  const btn = document.getElementById('downloadBtn');
+  btn.title = (tab === 'viz') ? 'Download chart as PNG' : 'Download data as CSV';
+}
+updateDownloadButtonLabel('viz');
+
+function csvEscape(v){
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+
+/* Download data + metadata as CSV */
+function downloadDataCsv(row){
+  const periods = getPeriodsRaw(row);
+  const dataRows = [
+    ...periods.map((p, i)=>{
+      const isLast = i === periods.length - 1;
+      return [isLast ? 'Current Period' : `${p.label} Period`, p.value];
+    }),
+    ['Same Period Last Year', row.sply],
+    ['YTD', row.ytd],
+    ['FYTD', row.fytd],
+    ['Last Year', row.lastyr]
+  ];
+  const metaRows = [
+    ['Division', row.division],
+    ['Frequency', row.frequency || ''],
+    ['Unit', row.unit || ''],
+    ['Latest Period', row.latest_period || ''],
+    ['Source', 'Summary Sheet']
+  ];
+  const lines = [];
+  lines.push(csvEscape(row.indicator));
+  lines.push('');
+  lines.push('Metric,Value');
+  dataRows.forEach(([k,v])=> lines.push(`${csvEscape(k)},${csvEscape(v===''?null:v)}`));
+  lines.push('');
+  lines.push('Metadata,Value');
+  metaRows.forEach(([k,v])=> lines.push(`${csvEscape(k)},${csvEscape(v)}`));
+
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.download = `${slug(row.indicator)}-data.csv`;
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+/* Download button — behavior depends on the active tab */
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  const row = byDivision[state.division][state.indicatorIdx];
+  const activeTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab') || 'viz';
+
+  if (activeTab !== 'viz'){
+    downloadDataCsv(row);
+    return;
+  }
+
+  // Visualization tab: rasterize the inline SVG chart to PNG (no external deps)
+  if (!lastDetailSVG) return;
+  const svgEl = lastDetailSVG;
+  const xml = new XMLSerializer().serializeToString(svgEl);
+  const svg64 = btoa(unescape(encodeURIComponent(xml)));
+  const img = new Image();
+  img.onload = ()=>{
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = 900 * scale;
+    canvas.height = 340 * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#12181f';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0, 900, 340);
+    const link = document.createElement('a');
+    link.download = `${slug(row.indicator)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+  img.src = 'data:image/svg+xml;base64,' + svg64;
+});
+
+/* Share (copy a descriptive text since this is a static file) */
+document.getElementById('shareBtn').addEventListener('click', (e)=>{
+  const row = byDivision[state.division][state.indicatorIdx];
+  const text = `${row.indicator}: ${fmtNum(numVal(row.current))} ${unitLabel(row.unit)} (${row.latest_period||''})`;
+  navigator.clipboard?.writeText(text).then(()=>{
+    const btn = e.currentTarget;
+    const old = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(()=>btn.textContent = old, 1200);
+  }).catch(()=>{});
+});
+
+/* ============ EXCEL LIVE LINK ============ */
+/* Loads SheetJS lazily and in isolation — if it fails (offline/blocked CDN),
+   the rest of the dashboard (navigation, charts, etc.) is completely unaffected. */
+let sheetJsReady = null;
+function loadSheetJS(){
+  if (sheetJsReady) return sheetJsReady;
+  sheetJsReady = new Promise((resolve, reject)=>{
+    if (window.XLSX) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = ()=> resolve();
+    s.onerror = ()=> reject(new Error('Could not load the Excel parser (no internet access to the library CDN).'));
+    document.head.appendChild(s);
+  });
+  return sheetJsReady;
+}
+
+function excelDateFmt(v){
+  if (v instanceof Date){
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[v.getMonth()] + ' ' + v.getFullYear();
+  }
+  return v;
+}
+
+// Picks the right data sheet from the workbook. Sheet naming isn't reliable on its own —
+// a workbook can contain a stale/differently-laid-out tab whose name still matches
+// "summary" loosely (e.g. "Summary2"), so we verify the header row before trusting a name.
+function headerLooksRight(sheet){
+  const preview = XLSX.utils.sheet_to_json(sheet, { header:1, raw:true, defval:null, blankrows:true, range:0 }).slice(0, 4);
+  return preview.some(row => Array.isArray(row) && row.some(cell =>
+    typeof cell === 'string' && /name of the division/i.test(cell)
+  ));
+}
+
+function findDataSheet(workbook){
+  const names = workbook.SheetNames;
+
+  // 1) An exact "Summary" sheet name, IF its header actually matches the expected layout.
+  const exactSummary = names.find(n => n.trim().toLowerCase() === 'summary');
+  if (exactSummary && headerLooksRight(workbook.Sheets[exactSummary])) return exactSummary;
+
+  // 2) A sheet named exactly after a known division code (e.g. a single-division source file).
+  const codeMatch = names.find(n => DIVISION_NAMES.hasOwnProperty(n.trim().toUpperCase()));
+  if (codeMatch && headerLooksRight(workbook.Sheets[codeMatch])) return codeMatch;
+
+  // 3) Any sheet whose header row genuinely matches, regardless of name.
+  const anyMatch = names.find(n => headerLooksRight(workbook.Sheets[n]));
+  if (anyMatch) return anyMatch;
+
+  // 4) Fall back to a loose name match, then the first sheet.
+  return names.find(n => /summary/i.test(n)) || names[0];
+}
+
+// Detects the "Current Period" and "Same Period Last Year" columns (and whatever
+// falls between/after them) from the header row itself, rather than assuming a fixed
+// number of previous-period columns. This lets a source sheet with more history
+// (T-1, T-2, T-3, T-4...) contribute all of it, instead of being capped at 2.
+function detectColumns(headerRow){
+  const findIdx = (re, from=0)=> {
+    for (let i=from; i<headerRow.length; i++){
+      if (typeof headerRow[i] === 'string' && re.test(headerRow[i])) return i;
+    }
+    return -1;
+  };
+
+  // Leading identity/metadata columns — detected by header text rather than assumed
+  // fixed positions, so a sheet with a reordered or inserted column still reads correctly.
+  const divIdx    = findIdx(/name of the division/i)   !== -1 ? findIdx(/name of the division/i)   : 0;
+  const indIdx    = findIdx(/indicators?\s*\/?\s*parameters/i) !== -1 ? findIdx(/indicators?\s*\/?\s*parameters/i) : 1;
+  const freqIdx   = findIdx(/^frequency$/i)             !== -1 ? findIdx(/^frequency$/i)             : 2;
+  const unitIdx   = findIdx(/^unit$/i)                  !== -1 ? findIdx(/^unit$/i)                  : 3;
+  const latestIdx = findIdx(/latest period/i)           !== -1 ? findIdx(/latest period/i)           : 4;
+
+  let curIdx = findIdx(/current period/i);
+  if (curIdx === -1) curIdx = 5; // fallback to the layout's usual position (column F)
+
+  let splyIdx = findIdx(/same period last year/i, curIdx + 1);
+  // If there's no recognizable "Same Period Last Year" column at all, assume every
+  // remaining column is an additional previous-period column rather than guessing
+  // a fixed offset — this is what lets a sheet with extra history (T-3, T-4, ...)
+  // contribute all of it instead of being truncated.
+  if (splyIdx === -1) splyIdx = headerRow.length;
+
+  const ytdIdx   = findIdx(/^ytd$/i, splyIdx + 1)   !== -1 ? findIdx(/^ytd$/i, splyIdx + 1)   : splyIdx + 1;
+  const fytdIdx  = findIdx(/^fytd$/i, splyIdx + 1)  !== -1 ? findIdx(/^fytd$/i, splyIdx + 1)  : splyIdx + 2;
+  const lastyrIdx= findIdx(/last year/i, splyIdx + 1) !== -1 ? findIdx(/last year/i, splyIdx + 1) : splyIdx + 3;
+
+  const previousCount = Math.max(0, splyIdx - curIdx - 1);
+  return { divIdx, indIdx, freqIdx, unitIdx, latestIdx, curIdx, splyIdx, ytdIdx, fytdIdx, lastyrIdx, previousCount };
+}
+
+// Same layout logic as the original extraction: header on row 2, data from row 4.
+// Every column this parser reads — division, indicator, frequency, unit, latest period,
+// current/previous periods, same-period-last-year, YTD, FYTD, last year — is located by
+// matching the header row's actual text via detectColumns() above, not by a fixed
+// position. That's what makes "Latest Period" (and everything else) reflect whatever
+// column in the sheet is genuinely labeled that, even if the layout shifts.
+function parseWorkbookToRows(workbook){
+  const sheetName = findDataSheet(workbook);
+  const sheet = workbook.Sheets[sheetName];
+  // blankrows:true keeps row indices aligned 1:1 with the actual sheet rows —
+  // this workbook has a blank spacer row right after the header, and dropping it
+  // (blankrows:false) shifts every subsequent row's index and skips the first data row.
+  const aoa = XLSX.utils.sheet_to_json(sheet, { header:1, raw:true, defval:null, blankrows:true });
+  if (aoa.length < 2) return [];
+
+  const { divIdx, indIdx, freqIdx, unitIdx, latestIdx, curIdx, splyIdx, ytdIdx, fytdIdx, lastyrIdx, previousCount } = detectColumns(aoa[1] || []);
+
+  const rows = [];
+  // data starts at row index 3 (0-based) == Excel row 4, matching the original layout
+  for (let i = 3; i < aoa.length; i++){
+    const r = aoa[i];
+    if (!r) continue;
+    const div = r[divIdx], ind = r[indIdx];
+    if (!div || !ind) continue;
+    const freq = r[freqIdx], unit = r[unitIdx], latest_period = r[latestIdx];
+
+    // Build the chronological period list: oldest previous period first, Current last.
+    const periods = [];
+    for (let k = previousCount; k >= 1; k--){
+      periods.push({ label: 'T-' + k, value: excelDateFmt(r[curIdx + k]) });
+    }
+    periods.push({ label: 'Current', value: excelDateFmt(r[curIdx]) });
+
+    if (periods.every(p => p.value === null)) continue; // section header row
+
+    const sply = r[splyIdx], ytd = r[ytdIdx], fytd = r[fytdIdx], lastyr = r[lastyrIdx];
+    rows.push({
+      division: div,
+      indicator: ind,
+      frequency: freq,
+      unit: unit,
+      latest_period: excelDateFmt(latest_period),
+      periods: periods,
+      // legacy fields kept for backward compatibility with any code path still reading them directly
+      current: periods[periods.length - 1].value,
+      t1: periods.length >= 2 ? periods[periods.length - 2].value : null,
+      t2: periods.length >= 3 ? periods[periods.length - 3].value : null,
+      sply: excelDateFmt(sply),
+      ytd: excelDateFmt(ytd),
+      fytd: excelDateFmt(fytd),
+      lastyr: excelDateFmt(lastyr)
+    });
+  }
+  return rows;
+}
+
+const EXCEL_FILENAME = 'Summary-Sheet-Final.xlsx'; // must sit next to this HTML file
+
+let linkedFileHandle = null;   // File System Access API handle, when the user manually links a file
+let sourceMode = 'snapshot';   // 'snapshot' | 'fetch' | 'handle' | 'upload'
+
+function setSourceStatus(kind, label){
+  const el = document.getElementById('sourceStatus');
+  el.className = 'source-status' + (kind ? ' ' + kind : '');
+  el.innerHTML = `<span class="src-dot"></span> ${label}`;
+}
+
+function reRenderCurrentView(){
+  if (state.view === 'divisions'){
+    renderDivisions();
+  } else if (state.view === 'indicators' && byDivision[state.division]){
+    renderIndicatorTiles(state.division);
+    document.getElementById('divisionSub').textContent = `${byDivision[state.division].length} indicators tracked by this division. Tap a tile to explore the full series.`;
+  } else if (state.view === 'detail' && byDivision[state.division] && byDivision[state.division][state.indicatorIdx]){
+    goDetail(state.division, state.indicatorIdx);
+  } else {
+    goDivisions();
+  }
+}
+
+// ============ SHARED PERSISTENCE (Google Sheets, via Apps Script) ============
+// Every browser reads/writes the SAME Google Sheet through a small Apps Script Web App
+// that Google runs continuously — no one's computer needs to be left on for this to
+// work. Explicit data-changing actions (choosing a file, merging source files,
+// resetting) push the result there so every other open dashboard picks it up too.
+//
+// SETUP: paste Code.gs into a Google Sheet's Apps Script editor, deploy it as a Web
+// App (Execute as: Me, Who has access: Anyone), then paste the resulting URL below.
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyD8ZSmMG2sluh_1BkhqwqgipONpe5LPEjs2u8CxuHGxuww_DfjpMPKn8cb4SGDju3eMQ/exec';
+
+function sharedBackendConfigured(){
+  return typeof APPS_SCRIPT_URL === 'string' && /^https:\/\/script\.google(usercontent)?\.com\//.test(APPS_SCRIPT_URL);
+}
+
+async function pushSharedData(rows, sourceLabel){
+  if (!sharedBackendConfigured()){
+    throw new Error('Shared backend not set up yet — paste your Apps Script URL into APPS_SCRIPT_URL in this file.');
+  }
+  // text/plain avoids a CORS preflight request, which Apps Script Web Apps don't
+  // handle — Apps Script still parses the body as JSON on its end regardless of
+  // the declared content type.
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ rows, sourceLabel, savedAt: new Date().toISOString() })
+  });
+  if (!res.ok) throw new Error('Server rejected the update (HTTP ' + res.status + ')');
+  const result = await res.json().catch(()=>({ ok:true }));
+  if (result && result.ok === false) throw new Error(result.error || 'Server rejected the update');
+}
+
+async function pullSharedData(){
+  if (!sharedBackendConfigured()){
+    throw new Error('Shared backend not set up yet — paste your Apps Script URL into APPS_SCRIPT_URL in this file.');
+  }
+  const res = await fetch(APPS_SCRIPT_URL + '?t=' + Date.now(), { cache:'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (!data || !Array.isArray(data.rows)) throw new Error('Unexpected response from the shared backend');
+  return data;
+}
+
+async function applyWorkbookBuffer(buf, label, mode, { push = true } = {}){
+  await loadSheetJS();
+  const workbook = XLSX.read(buf, { type:'array', cellDates:true });
+  const rows = parseWorkbookToRows(workbook);
+  if (!rows.length) throw new Error('No indicator rows found — is this the right workbook?');
+  masterRows = rows; // full replace
+  rebuildIndex(masterRows);
+  sourceMode = mode;
+  const stamp = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  reRenderCurrentView();
+
+  if (push){
+    try{
+      await pushSharedData(masterRows, label);
+      setSourceStatus('live', `Shared: ${label} · ${stamp}`);
+    } catch(err){
+      console.error('Could not push to shared server:', err);
+      setSourceStatus('error', `${label} (local only — couldn't reach the shared server)`);
+    }
+  } else {
+    setSourceStatus('live', `${label} · ${stamp}`);
+  }
+}
+
+async function applyWorkbookFile(file, fileNameForLabel, mode){
+  try{
+    await applyWorkbookBuffer(await file.arrayBuffer(), `Linked: ${fileNameForLabel}`, mode);
+  } catch(err){
+    console.error(err);
+    setSourceStatus('error', err.message || 'Failed to read the file');
+  }
+}
+
+// Merge one or more "source" workbooks (same column layout) into the current dataset —
+// only rows matching an existing (division, indicator) get their numbers updated;
+// anything genuinely new gets appended. Everything else in the dataset is untouched.
+// The merged result is then pushed to the shared server so everyone sees it.
+async function applySourceFiles(files){
+  try{
+    await loadSheetJS();
+    let totalUpdated = 0, totalAdded = 0, totalRemoved = 0;
+    const names = [];
+    for (const file of files){
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type:'array', cellDates:true });
+      const rows = parseWorkbookToRows(workbook);
+      if (!rows.length) continue;
+      const { updated, added, removed } = mergeRowsIntoMaster(rows);
+      totalUpdated += updated; totalAdded += added; totalRemoved += removed;
+      names.push(file.name);
+    }
+    rebuildIndex(masterRows);
+    sourceMode = 'merge';
+    const stamp = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const fileLabel = names.length === 1 ? names[0] : `${names.length} files`;
+    const summaryLabel = `Updated ${totalUpdated} · Added ${totalAdded} · Removed ${totalRemoved} from ${fileLabel}`;
+    reRenderCurrentView();
+
+    try{
+      await pushSharedData(masterRows, summaryLabel);
+      setSourceStatus('live', `Shared: ${summaryLabel} · ${stamp}`);
+    } catch(err){
+      console.error('Could not push to shared server:', err);
+      setSourceStatus('error', `${summaryLabel} (local only — couldn't reach the shared server)`);
+    }
+  } catch(err){
+    console.error(err);
+    setSourceStatus('error', err.message || 'Failed to read one of the source files');
+  }
+}
+
+// Try to auto-fetch the workbook from the same folder as this HTML file.
+async function tryAutoFetch(silent, { push = true } = {}){
+  try{
+    await loadSheetJS();
+    const res = await fetch(EXCEL_FILENAME + '?t=' + Date.now(), { cache:'no-store' });
+    if (!res.ok) throw new Error(`"${EXCEL_FILENAME}" not found next to this file (HTTP ${res.status}).`);
+    const buf = await res.arrayBuffer();
+    await applyWorkbookBuffer(buf, `Auto-loaded: ${EXCEL_FILENAME}`, 'fetch', { push });
+    return true;
+  } catch(err){
+    if (!silent){
+      const isFileProtocol = location.protocol === 'file:';
+      const msg = isFileProtocol
+        ? `Can't auto-read local files when opened directly (file://) in this browser. Use "Choose Excel file" below, or open this file through any static host.`
+        : (err.message || 'Auto-fetch failed.');
+      setSourceStatus('error', msg);
+    }
+    return false;
+  }
+}
+
+const linkBtn = document.getElementById('linkFileBtn');
+const fallbackInput = document.getElementById('fileInputFallback');
+const sourceFilesBtn = document.getElementById('sourceFilesBtn');
+const sourceFilesInput = document.getElementById('sourceFilesInput');
+
+linkBtn.addEventListener('click', async ()=>{
+  if (window.showOpenFilePicker){
+    try{
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description:'Excel Workbook', accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx']} }],
+        excludeAcceptAllOption:false, multiple:false
+      });
+      linkedFileHandle = handle;
+      const file = await handle.getFile();
+      await applyWorkbookFile(file, file.name, 'handle');
+    } catch(err){
+      if (err.name !== 'AbortError') console.error(err);
+    }
+  } else {
+    fallbackInput.click();
+  }
+});
+
+fallbackInput.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if (file) await applyWorkbookFile(file, file.name, 'upload');
+  fallbackInput.value = '';
+});
+
+sourceFilesBtn.addEventListener('click', ()=> sourceFilesInput.click());
+
+sourceFilesInput.addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  if (files.length) await applySourceFiles(files);
+  sourceFilesInput.value = '';
+});
+
+// Pulls the current shared dataset from the server and re-renders. Used on load and
+// whenever the person clicks "↻ Refresh" to pick up updates someone else pushed.
+// Returns 'data' (real shared rows loaded), 'empty' (backend reachable but confirmed
+// empty — safe to seed), or 'error' (couldn't reach/parse it — status unknown, so we
+// must NOT let anything overwrite the shared copy based on this).
+async function syncFromServer(manual){
+  try{
+    const data = await pullSharedData();
+    if (data.rows.length){
+      masterRows = data.rows;
+      rebuildIndex(masterRows);
+      sourceMode = 'shared';
+      const savedDate = new Date(data.savedAt);
+      const stamp = isNaN(savedDate) ? '' : ' · ' + savedDate.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+      setSourceStatus('live', `Shared: ${data.sourceLabel || 'dashboard data'}${stamp}`);
+      reRenderCurrentView();
+      return 'data';
+    }
+    return 'empty';
+  } catch(err){
+    if (manual){
+      console.error(err);
+      setSourceStatus('error', sharedBackendConfigured() ? "Couldn't reach the shared Google Sheet backend — check your internet connection." : "Shared backend not set up yet — paste your Apps Script URL into APPS_SCRIPT_URL in dashboard.html.");
+    }
+    return 'error';
+  }
+}
+
+/* Init */
+
+function revealDashboard(){
+  const loader = document.getElementById('initialLoader');
+  const app = document.getElementById('appRoot');
+  if (loader) loader.style.display = 'none';
+  if (app) app.style.display = '';
+  renderDivisions();
+  renderCrumbs();
+}
+
+(async ()=>{
+  // Resolve the REAL starting dataset before showing anything, so the dashboard never
+  // flashes the bundled snapshot's numbers first and then visibly swaps them out a
+  // second or two later once the shared data arrives.
+
+  // 1) Try the shared backend first — this is what makes updates visible to everyone,
+  //    not just the browser that pushed them. Any rendering this triggers happens
+  //    while #appRoot is still display:none, so nothing is visible yet either way.
+  const shared = await syncFromServer(false);
+  if (shared === 'data') { revealDashboard(); return; }
+
+  if (shared === 'empty'){
+    // Genuinely nothing in the shared Sheet yet (first-ever run) — safe to seed it
+    // from a local Summary-Sheet-Final.xlsx if one happens to be sitting here.
+    const gotLocalFile = await tryAutoFetch(true, { push:true });
+    if (gotLocalFile) { revealDashboard(); return; }
+    revealDashboard(); // nothing local either — bundled snapshot it is
+    return;
+  }
+
+  // shared === 'error': the shared backend's real state is UNKNOWN (could easily
+  // already hold good data that a colleague pushed) — never push a local fallback
+  // over it in this case, that would silently overwrite good shared data with a
+  // stale local file. Show the local file (or bundled snapshot) for this visit only.
+  await tryAutoFetch(true, { push:false });
+  setSourceStatus('error', "Couldn't reach the shared Google Sheet — showing local data only. Reload once you're back online to see the real shared data.");
+  revealDashboard();
+})();
+</script>
+</body>
+</html>
