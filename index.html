@@ -901,8 +901,12 @@ function loadSheetJS(){
 
 function excelDateFmt(v){
   if (v instanceof Date){
+    // Use UTC getters, not local-time getters. SheetJS parses Excel date cells as
+    // midnight UTC, so reading them with .getMonth()/.getFullYear() (which apply the
+    // *browser's* local timezone) can roll the date back a day — e.g. "May 1 UTC"
+    // becomes "Apr 30" in any timezone behind UTC, silently reporting the wrong month.
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months[v.getMonth()] + ' ' + v.getFullYear();
+    return months[v.getUTCMonth()] + ' ' + v.getUTCFullYear();
   }
   return v;
 }
